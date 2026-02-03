@@ -15,7 +15,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto) {
     // Check if user already exists
@@ -52,53 +52,58 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    // Validate that either email or phone is provided
-    if (!loginDto.email && !loginDto.phone) {
-      throw new BadRequestException('Email or phone is required');
+    try {
+      // Validate that either email or phone is provided
+      if (!loginDto.email && !loginDto.phone) {
+        throw new BadRequestException('Email or phone is required');
+      }
+
+      // Find user by email or phone
+      const user = await this.usersService.findByEmailOrPhone(
+        loginDto.email,
+        loginDto.phone,
+      );
+
+      if (!user) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      // Check if user is active
+      if (!user.isActive) {
+        throw new UnauthorizedException('Account is inactive');
+      }
+
+      // Verify password
+      if (!user.password) {
+        throw new UnauthorizedException('Password not set for this account');
+      }
+
+      const isPasswordValid = await bcrypt.compare(
+        loginDto.password,
+        user.password,
+      );
+
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      // Update last login
+      await this.usersService.updateLastLogin(user.id);
+
+      // Generate JWT token
+      const token = await this.generateToken(user);
+
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+
+      return {
+        user: userWithoutPassword,
+        access_token: token,
+      };
+    } catch (error) {
+      console.error('Login error details:', error);
+      throw error;
     }
-
-    // Find user by email or phone
-    const user = await this.usersService.findByEmailOrPhone(
-      loginDto.email,
-      loginDto.phone,
-    );
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Check if user is active
-    if (!user.isActive) {
-      throw new UnauthorizedException('Account is inactive');
-    }
-
-    // Verify password
-    if (!user.password) {
-      throw new UnauthorizedException('Password not set for this account');
-    }
-
-    const isPasswordValid = await bcrypt.compare(
-      loginDto.password,
-      user.password,
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Update last login
-    await this.usersService.updateLastLogin(user.id);
-
-    // Generate JWT token
-    const token = await this.generateToken(user);
-
-    // Remove password from response
-    const { password, ...userWithoutPassword } = user;
-
-    return {
-      user: userWithoutPassword,
-      access_token: token,
-    };
   }
 
   async validateUser(userId: number) {
