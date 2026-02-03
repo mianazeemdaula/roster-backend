@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  name            String
+  phone           String    @unique
+  email           String?   @unique
+  password        String?
+  emailVerifiedAt DateTime?
+  isPhoneVerified Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  isDeleted       Boolean   @default(false)
+  fcmToken        String?
+  lastLoginAt     DateTime?
+
+  companyUsers  CompanyUser[]
+  notifications Notification[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  companies Company[]
+}
+
+model Company {
+  id          Int     @id @default(autoincrement())
+  name        String
+  logoUrl     String?
+  industry    String?
+  ownerId     Int
+  companyCode String  @unique
+
+  owner      User            @relation(fields: [ownerId], references: [id])
+  users      CompanyUser[]
+  locations  Location[]
+  shiftTypes ShiftTemplate[]
+  rosters    Roster[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CompanyUser {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  companyId Int
+
+  role        CompanyRole // admin | manager | employee
+  jobTitle    String // Guard, Cook, Cleaner
+  isActive    Boolean     @default(true)
+  isRequested Boolean     @default(false)
+
+  user    User     @relation(fields: [userId], references: [id])
+  company Company  @relation(fields: [companyId], references: [id])
+  rosters Roster[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, companyId])
+}
+
+model Location {
+  id        Int     @id @default(autoincrement())
+  companyId Int
+  name      String
+  address   String?
+  latitude  Float?
+  longitude Float?
+
+  company Company  @relation(fields: [companyId], references: [id])
+  rosters Roster[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShiftTemplate {
+  id           Int    @id @default(autoincrement())
+  companyId    Int
+  name         String // Morning / Night
+  startTime    String // "08:00"
+  endTime      String // "16:00"
+  breakMinutes Int    @default(0)
+
+  company Company  @relation(fields: [companyId], references: [id])
+  rosters Roster[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Roster {
+  id              Int          @id @default(autoincrement())
+  companyId       Int
+  companyUserId   Int
+  locationId      Int
+  shiftTemplateId Int
+  dutyDate        DateTime
+  note            String?
+  status          RosterStatus @default(ASSIGNED)
+
+  company       Company       @relation(fields: [companyId], references: [id])
+  employee      CompanyUser   @relation(fields: [companyUserId], references: [id])
+  location      Location      @relation(fields: [locationId], references: [id])
+  shiftTemplate ShiftTemplate @relation(fields: [shiftTemplateId], references: [id])
+  attendance    Attendance?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyUserId, dutyDate])
+}
+
+model Attendance {
+  id       Int @id @default(autoincrement())
+  rosterId Int @unique
+
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  checkInLat    Float?
+  checkInLng    Float?
+  checkInPhoto  String?
+  checkOutPhoto String?
+
+  roster Roster @relation(fields: [rosterId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id      Int     @id @default(autoincrement())
+  userId  Int
+  title   String
+  message String
+  isRead  Boolean @default(false)
+  isSent  Boolean @default(false)
+  user    User    @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum CompanyRole {
+  admin
+  manager
+  employee
+}
+
+enum RosterStatus {
+  ASSIGNED
+  COMPLETED
+  MISSED
+  CANCELLED
+}
