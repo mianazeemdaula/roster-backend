@@ -11,6 +11,7 @@ import { ShiftTemplatesModule } from './shift-templates/shift-templates.module';
 import { RostersModule } from './rosters/rosters.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ShiftAdvertsModule } from './shift-adverts/shift-adverts.module';
 
 @Module({
   imports: [
@@ -24,8 +25,9 @@ import { NotificationsModule } from './notifications/notifications.module';
     RostersModule,
     AttendanceModule,
     NotificationsModule,
+    ShiftAdvertsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

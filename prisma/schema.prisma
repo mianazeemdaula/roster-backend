@@ -35,14 +35,34 @@ model Company {
   ownerId     Int
   companyCode String  @unique
 
-  owner      User            @relation(fields: [ownerId], references: [id])
-  users      CompanyUser[]
-  locations  Location[]
-  shiftTypes ShiftTemplate[]
-  rosters    Roster[]
+  owner        User            @relation(fields: [ownerId], references: [id])
+  users        CompanyUser[]
+  locations    Location[]
+  shiftTypes   ShiftTemplate[]
+  rosters      Roster[]
+  shiftAdverts ShiftAdvert[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  compnayDocuments CompnayDocument[]
+}
+
+model CompnayDocument {
+  id        Int    @id @default(autoincrement())
+  companyId Int
+  docType   String // e.g., "business_license", "tax_certificate"
+  docUrl    String
+
+  company Company @relation(fields: [companyId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum JobType {
+  CASUAL
+  FULL_TIME
+  PART_TIME
 }
 
 model CompanyUser {
@@ -50,14 +70,23 @@ model CompanyUser {
   userId    Int
   companyId Int
 
-  role        CompanyRole // admin | manager | employee
-  jobTitle    String // Guard, Cook, Cleaner
-  isActive    Boolean     @default(true)
-  isRequested Boolean     @default(false)
+  role          CompanyRole // admin | manager | employee
+  jobTitle      String // Guard, Cook, Cleaner
+  jobType       JobType
+  salaryPerHour Decimal
+  isActive      Boolean     @default(true)
+  isRequested   Boolean     @default(false)
+  leftAt        DateTime? // When user left the company (maintains history)
 
-  user    User     @relation(fields: [userId], references: [id])
-  company Company  @relation(fields: [companyId], references: [id])
-  rosters Roster[]
+  user                 User                  @relation(fields: [userId], references: [id])
+  company              Company               @relation(fields: [companyId], references: [id])
+  rosters              Roster[]
+  shiftAdvertResponses ShiftAdvertResponse[]
+
+  // Track admin transfers FROM this user
+  adminTransfersFrom AdminTransfer[] @relation("TransferredFrom")
+  // Track admin transfers TO this user
+  adminTransfersTo   AdminTransfer[] @relation("TransferredTo")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -73,8 +102,9 @@ model Location {
   latitude  Float?
   longitude Float?
 
-  company Company  @relation(fields: [companyId], references: [id])
-  rosters Roster[]
+  company      Company       @relation(fields: [companyId], references: [id])
+  rosters      Roster[]
+  shiftAdverts ShiftAdvert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -88,33 +118,93 @@ model ShiftTemplate {
   endTime      String // "16:00"
   breakMinutes Int    @default(0)
 
-  company Company  @relation(fields: [companyId], references: [id])
-  rosters Roster[]
+  company      Company       @relation(fields: [companyId], references: [id])
+  rosters      Roster[]
+  shiftAdverts ShiftAdvert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Roster {
-  id              Int          @id @default(autoincrement())
+model ShiftAdvert {
+  id              Int      @id @default(autoincrement())
   companyId       Int
-  companyUserId   Int
   locationId      Int
   shiftTemplateId Int
   dutyDate        DateTime
+  jobTitle        String // Guard, Receptionist
+  jobType         JobType?
   note            String?
-  status          RosterStatus @default(ASSIGNED)
+
+  status ShiftAdvertStatus @default(OPEN)
+
+  company       Company               @relation(fields: [companyId], references: [id])
+  location      Location              @relation(fields: [locationId], references: [id])
+  shiftTemplate ShiftTemplate         @relation(fields: [shiftTemplateId], references: [id])
+  responses     ShiftAdvertResponse[]
+  roster        Roster?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, dutyDate])
+}
+
+model ShiftAdvertResponse {
+  id            Int                       @id @default(autoincrement())
+  shiftAdvertId Int
+  companyUserId Int
+  response      ShiftAdvertResponseStatus
+  rosterId      Int?
+  respondedAt   DateTime                  @default(now())
+
+  shiftAdvert ShiftAdvert @relation(fields: [shiftAdvertId], references: [id])
+  companyUser CompanyUser @relation(fields: [companyUserId], references: [id])
+  roster      Roster?     @relation(fields: [rosterId], references: [id])
+
+  @@unique([shiftAdvertId, companyUserId])
+  @@unique([rosterId])
+  @@index([companyUserId])
+}
+
+model Roster {
+  id               Int      @id @default(autoincrement())
+  companyId        Int
+  companyUserId    Int
+  locationId       Int
+  shiftTemplateId  Int
+  dutyDate         DateTime
+  note             String?
+  shiftAdvertId    Int?     @unique
+  scheduledMinutes Int? // Cached from shift template for reporting
+  actualMinutes    Int? // Cached from attendance for reporting
+
+  status RosterStatus @default(ASSIGNED)
 
   company       Company       @relation(fields: [companyId], references: [id])
   employee      CompanyUser   @relation(fields: [companyUserId], references: [id])
   location      Location      @relation(fields: [locationId], references: [id])
   shiftTemplate ShiftTemplate @relation(fields: [shiftTemplateId], references: [id])
   attendance    Attendance?
+  shiftAdvert   ShiftAdvert?  @relation(fields: [shiftAdvertId], references: [id])
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  shiftAttachments    ShiftAttachment[]
+  shiftAdvertResponse ShiftAdvertResponse?
 
   @@index([companyUserId, dutyDate])
+}
+
+model ShiftAttachment {
+  id       Int    @id @default(autoincrement())
+  rosterId Int
+  fileUrl  String
+  fileType String // image, document, etc.
+
+  roster Roster @relation(fields: [rosterId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model Attendance {
@@ -146,6 +236,22 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+model AdminTransfer {
+  id        Int @id @default(autoincrement())
+  companyId Int
+
+  fromCompanyUserId Int // Previous admin
+  toCompanyUserId   Int // New admin
+  reason            String? // Reason for transfer
+
+  fromCompanyUser CompanyUser @relation("TransferredFrom", fields: [fromCompanyUserId], references: [id])
+  toCompanyUser   CompanyUser @relation("TransferredTo", fields: [toCompanyUserId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
 enum CompanyRole {
   admin
   manager
@@ -157,4 +263,15 @@ enum RosterStatus {
   COMPLETED
   MISSED
   CANCELLED
+}
+
+enum ShiftAdvertStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum ShiftAdvertResponseStatus {
+  WILLING
+  IGNORED
 }

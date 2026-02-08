@@ -5,12 +5,39 @@ import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 
 @Injectable()
 export class AttendanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
-  create(createAttendanceDto: CreateAttendanceDto) {
-    return this.prisma.attendance.create({
+  private calculateActualMinutes(checkInTime?: Date, checkOutTime?: Date) {
+    if (!checkInTime || !checkOutTime) {
+      return null;
+    }
+
+    const diffMs = checkOutTime.getTime() - checkInTime.getTime();
+    if (diffMs <= 0) {
+      return 0;
+    }
+
+    return Math.floor(diffMs / 60000);
+  }
+
+  async create(createAttendanceDto: CreateAttendanceDto) {
+    const attendance = await this.prisma.attendance.create({
       data: createAttendanceDto,
     });
+
+    const actualMinutes = this.calculateActualMinutes(
+      attendance.checkInTime ?? undefined,
+      attendance.checkOutTime ?? undefined,
+    );
+
+    if (actualMinutes !== null) {
+      await this.prisma.roster.update({
+        where: { id: attendance.rosterId },
+        data: { actualMinutes },
+      });
+    }
+
+    return attendance;
   }
 
   findAll() {
@@ -26,11 +53,23 @@ export class AttendanceService {
     });
   }
 
-  update(id: number, updateAttendanceDto: UpdateAttendanceDto) {
-    return this.prisma.attendance.update({
+  async update(id: number, updateAttendanceDto: UpdateAttendanceDto) {
+    const attendance = await this.prisma.attendance.update({
       where: { id },
       data: updateAttendanceDto,
     });
+
+    const actualMinutes = this.calculateActualMinutes(
+      attendance.checkInTime ?? undefined,
+      attendance.checkOutTime ?? undefined,
+    );
+
+    await this.prisma.roster.update({
+      where: { id: attendance.rosterId },
+      data: { actualMinutes },
+    });
+
+    return attendance;
   }
 
   remove(id: number) {

@@ -1,0 +1,973 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "dataTypes": {
+    "id": "integer",
+    "date": "ISO 8601 string",
+    "boolean": "true/false",
+    "string": "text",
+    "number": "numeric (float)"
+  },
+  "resources": {
+    "users": {
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/users",
+          "requestSchema": {
+            "name": {
+              "type": "string",
+              "required": true
+            },
+            "phone": {
+              "type": "string",
+              "required": true
+            },
+            "email": {
+              "type": "string",
+              "required": false,
+              "format": "email"
+            },
+            "password": {
+              "type": "string",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "name": "string",
+            "phone": "string",
+            "email": "string | null",
+            "password": "string | null",
+            "emailVerifiedAt": "date | null",
+            "isPhoneVerified": "boolean",
+            "isActive": "boolean",
+            "isDeleted": "boolean",
+            "createdAt": "date",
+            "updatedAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/users",
+          "responseSchema": "array of User objects"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/users/:id",
+          "responseSchema": "User object"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/users/:id",
+          "requestSchema": {
+            "name": {
+              "type": "string",
+              "required": false
+            },
+            "phone": {
+              "type": "string",
+              "required": false
+            },
+            "email": {
+              "type": "string",
+              "required": false,
+              "format": "email"
+            },
+            "password": {
+              "type": "string",
+              "required": false
+            }
+          },
+          "responseSchema": "User object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/users/:id",
+          "responseSchema": "User object (soft delete, sets isDeleted = true)"
+        }
+      }
+    },
+    "companies": {
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/companies",
+          "requestSchema": {
+            "name": {
+              "type": "string",
+              "required": true
+            },
+            "logoUrl": {
+              "type": "string",
+              "required": false
+            },
+            "industry": {
+              "type": "string",
+              "required": false
+            },
+            "ownerId": {
+              "type": "int",
+              "required": true
+            },
+            "companyCode": {
+              "type": "string",
+              "required": true
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "name": "string",
+            "logoUrl": "string | null",
+            "industry": "string | null",
+            "ownerId": "int",
+            "companyCode": "string",
+            "createdAt": "date",
+            "updatedAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/companies",
+          "responseSchema": "array of Company objects"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/companies/:id",
+          "responseSchema": "Company object"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/companies/:id",
+          "requestSchema": {
+            "name": {
+              "type": "string",
+              "required": false
+            },
+            "logoUrl": {
+              "type": "string",
+              "required": false
+            },
+            "industry": {
+              "type": "string",
+              "required": false
+            },
+            "ownerId": {
+              "type": "int",
+              "required": false
+            },
+            "companyCode": {
+              "type": "string",
+              "required": false
+            }
+          },
+          "responseSchema": "Company object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/companies/:id",
+          "responseSchema": "Company object"
+        }
+      }
+    },
+    "companyUsers": {
+      "description": "Manages company memberships with full history tracking. Users can join/leave companies. Admins must transfer role before leaving.",
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/company-users",
+          "description": "Add a new user to a company",
+          "requestSchema": {
+            "userId": {
+              "type": "int",
+              "required": true
+            },
+            "companyId": {
+              "type": "int",
+              "required": true
+            },
+            "role": {
+              "type": "string",
+              "required": true,
+              "enum": ["admin", "manager", "employee"]
+            },
+            "jobTitle": {
+              "type": "string",
+              "required": true
+            },
+            "isActive": {
+              "type": "boolean",
+              "required": false
+            },
+            "isRequested": {
+              "type": "boolean",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "userId": "int",
+            "companyId": "int",
+            "role": "string",
+            "jobTitle": "string",
+            "isActive": "boolean",
+            "isRequested": "boolean",
+            "leftAt": "date | null",
+            "createdAt": "date",
+            "updatedAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/company-users",
+          "description": "Get all company users (includes inactive)",
+          "responseSchema": "array of CompanyUser objects"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/company-users/:id",
+          "description": "Get a specific company user by ID",
+          "responseSchema": "CompanyUser object"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/company-users/:id",
+          "description": "Update a company user",
+          "requestSchema": {
+            "userId": {
+              "type": "int",
+              "required": false
+            },
+            "companyId": {
+              "type": "int",
+              "required": false
+            },
+            "role": {
+              "type": "string",
+              "required": false,
+              "enum": ["admin", "manager", "employee"]
+            },
+            "jobTitle": {
+              "type": "string",
+              "required": false
+            },
+            "isActive": {
+              "type": "boolean",
+              "required": false
+            },
+            "isRequested": {
+              "type": "boolean",
+              "required": false
+            }
+          },
+          "responseSchema": "CompanyUser object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/company-users/:id",
+          "description": "Hard delete a company user (not recommended, use leave endpoint instead)",
+          "responseSchema": "CompanyUser object"
+        },
+        "leaveCompany": {
+          "method": "POST",
+          "path": "/company-users/leave",
+          "description": "Regular user leaves a company (maintains history). Admins cannot use this - must use admin-leave instead.",
+          "requestSchema": {
+            "userId": {
+              "type": "int",
+              "required": true
+            },
+            "companyId": {
+              "type": "int",
+              "required": true
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "userId": "int",
+            "companyId": "int",
+            "role": "string",
+            "jobTitle": "string",
+            "isActive": "boolean (false)",
+            "leftAt": "date (current timestamp)",
+            "createdAt": "date",
+            "updatedAt": "date"
+          },
+          "errors": {
+            "400": "User is not an active member OR User is admin (must use admin-leave)"
+          }
+        },
+        "transferAdmin": {
+          "method": "POST",
+          "path": "/company-users/transfer-admin",
+          "description": "Transfer admin role from one user to another. Creates audit trail entry.",
+          "requestSchema": {
+            "currentAdminUserId": {
+              "type": "int",
+              "required": true
+            },
+            "newAdminUserId": {
+              "type": "int",
+              "required": true
+            },
+            "companyId": {
+              "type": "int",
+              "required": true
+            },
+            "reason": {
+              "type": "string",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "success": "boolean",
+            "message": "string",
+            "transfer": {
+              "id": "int",
+              "companyId": "int",
+              "fromCompanyUserId": "int",
+              "toCompanyUserId": "int",
+              "reason": "string",
+              "createdAt": "date",
+              "fromCompanyUser": "CompanyUser object with nested user",
+              "toCompanyUser": "CompanyUser object with nested user"
+            }
+          },
+          "errors": {
+            "400": "Current user is not an active admin OR New admin must be active member OR Cannot transfer to yourself"
+          }
+        },
+        "adminLeaveCompany": {
+          "method": "POST",
+          "path": "/company-users/admin-leave",
+          "description": "Admin leaves company by transferring role first, then leaving. Both operations in one transaction.",
+          "requestSchema": {
+            "adminUserId": {
+              "type": "int",
+              "required": true
+            },
+            "newAdminUserId": {
+              "type": "int",
+              "required": true
+            },
+            "companyId": {
+              "type": "int",
+              "required": true
+            },
+            "reason": {
+              "type": "string",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "success": "boolean",
+            "message": "string (Admin role transferred and user left the company successfully)"
+          },
+          "errors": {
+            "400": "User is not an active admin OR Cannot find active member to transfer to"
+          }
+        },
+        "rejoinCompany": {
+          "method": "POST",
+          "path": "/company-users/rejoin",
+          "description": "User rejoins a company they previously left. Requires previous membership record.",
+          "requestSchema": {
+            "userId": {
+              "type": "int",
+              "required": true
+            },
+            "companyId": {
+              "type": "int",
+              "required": true
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "userId": "int",
+            "companyId": "int",
+            "role": "string (previous role preserved)",
+            "jobTitle": "string (previous title preserved)",
+            "isActive": "boolean (true)",
+            "isRequested": "boolean (true - may need approval)",
+            "leftAt": "null (cleared)",
+            "createdAt": "date",
+            "updatedAt": "date",
+            "user": "User object",
+            "company": "Company object"
+          },
+          "errors": {
+            "400": "No previous membership found OR User is already an active member"
+          }
+        },
+        "getUserHistory": {
+          "method": "GET",
+          "path": "/company-users/history/:userId",
+          "description": "Get complete company membership history for a user (active and inactive)",
+          "responseSchema": "array of CompanyUser objects with nested company and recent rosters, sorted by active status then creation date"
+        },
+        "getAdminHistory": {
+          "method": "GET",
+          "path": "/company-users/:companyId/admin-history",
+          "description": "Get complete audit trail of admin role transfers for a company",
+          "responseSchema": "array of AdminTransfer objects with nested fromCompanyUser, toCompanyUser (includes user details), sorted by createdAt desc"
+        },
+        "getCompanyAdmins": {
+          "method": "GET",
+          "path": "/company-users/:companyId/admins",
+          "description": "Get all current active admins for a company",
+          "responseSchema": "array of CompanyUser objects (role=admin, isActive=true) with nested user"
+        },
+        "getActiveMembers": {
+          "method": "GET",
+          "path": "/company-users/:companyId/active-members",
+          "description": "Get all active members of a company (excludes users who left)",
+          "responseSchema": "array of CompanyUser objects (isActive=true) with nested user, sorted by role then creation date"
+        }
+      }
+    },
+    "locations": {
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/locations",
+          "requestSchema": {
+            "companyId": {
+              "type": "int",
+              "required": true
+            },
+            "name": {
+              "type": "string",
+              "required": true
+            },
+            "address": {
+              "type": "string",
+              "required": false
+            },
+            "latitude": {
+              "type": "number",
+              "required": false
+            },
+            "longitude": {
+              "type": "number",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "companyId": "int",
+            "name": "string",
+            "address": "string | null",
+            "latitude": "number | null",
+            "longitude": "number | null",
+            "createdAt": "date",
+            "updatedAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/locations",
+          "responseSchema": "array of Location objects"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/locations/:id",
+          "responseSchema": "Location object"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/locations/:id",
+          "requestSchema": {
+            "companyId": {
+              "type": "int",
+              "required": false
+            },
+            "name": {
+              "type": "string",
+              "required": false
+            },
+            "address": {
+              "type": "string",
+              "required": false
+            },
+            "latitude": {
+              "type": "number",
+              "required": false
+            },
+            "longitude": {
+              "type": "number",
+              "required": false
+            }
+          },
+          "responseSchema": "Location object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/locations/:id",
+          "responseSchema": "Location object"
+        }
+      }
+    },
+    "shiftTemplates": {
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/shift-templates",
+          "requestSchema": {
+            "companyId": {
+              "type": "int",
+              "required": true
+            },
+            "name": {
+              "type": "string",
+              "required": true
+            },
+            "startTime": {
+              "type": "string",
+              "required": true,
+              "format": "HH:mm"
+            },
+            "endTime": {
+              "type": "string",
+              "required": true,
+              "format": "HH:mm"
+            },
+            "breakMinutes": {
+              "type": "int",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "companyId": "int",
+            "name": "string",
+            "startTime": "string",
+            "endTime": "string",
+            "breakMinutes": "int",
+            "createdAt": "date",
+            "updatedAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/shift-templates",
+          "responseSchema": "array of ShiftTemplate objects"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/shift-templates/:id",
+          "responseSchema": "ShiftTemplate object"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/shift-templates/:id",
+          "requestSchema": {
+            "companyId": {
+              "type": "int",
+              "required": false
+            },
+            "name": {
+              "type": "string",
+              "required": false
+            },
+            "startTime": {
+              "type": "string",
+              "required": false,
+              "format": "HH:mm"
+            },
+            "endTime": {
+              "type": "string",
+              "required": false,
+              "format": "HH:mm"
+            },
+            "breakMinutes": {
+              "type": "int",
+              "required": false
+            }
+          },
+          "responseSchema": "ShiftTemplate object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/shift-templates/:id",
+          "responseSchema": "ShiftTemplate object"
+        }
+      }
+    },
+    "rosters": {
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/rosters",
+          "requestSchema": {
+            "companyId": {
+              "type": "int",
+              "required": true
+            },
+            "companyUserId": {
+              "type": "int",
+              "required": true
+            },
+            "locationId": {
+              "type": "int",
+              "required": true
+            },
+            "shiftTemplateId": {
+              "type": "int",
+              "required": true
+            },
+            "dutyDate": {
+              "type": "date",
+              "required": true
+            },
+            "status": {
+              "type": "string",
+              "required": false,
+              "enum": ["ASSIGNED", "COMPLETED", "MISSED", "CANCELLED"]
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "companyId": "int",
+            "companyUserId": "int",
+            "locationId": "int",
+            "shiftTemplateId": "int",
+            "dutyDate": "date",
+            "status": "string",
+            "createdAt": "date",
+            "updatedAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/rosters",
+          "responseSchema": "array of Roster objects with nested employee, location, shiftTemplate"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/rosters/:id",
+          "responseSchema": "Roster object with nested employee, location, shiftTemplate, attendance"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/rosters/:id",
+          "requestSchema": {
+            "companyId": {
+              "type": "int",
+              "required": false
+            },
+            "companyUserId": {
+              "type": "int",
+              "required": false
+            },
+            "locationId": {
+              "type": "int",
+              "required": false
+            },
+            "shiftTemplateId": {
+              "type": "int",
+              "required": false
+            },
+            "dutyDate": {
+              "type": "date",
+              "required": false
+            },
+            "status": {
+              "type": "string",
+              "required": false,
+              "enum": ["ASSIGNED", "COMPLETED", "MISSED", "CANCELLED"]
+            }
+          },
+          "responseSchema": "Roster object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/rosters/:id",
+          "responseSchema": "Roster object"
+        }
+      }
+    },
+    "attendance": {
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/attendance",
+          "requestSchema": {
+            "rosterId": {
+              "type": "int",
+              "required": true
+            },
+            "checkInTime": {
+              "type": "date",
+              "required": false
+            },
+            "checkOutTime": {
+              "type": "date",
+              "required": false
+            },
+            "checkInLat": {
+              "type": "number",
+              "required": false
+            },
+            "checkInLng": {
+              "type": "number",
+              "required": false
+            },
+            "checkInPhoto": {
+              "type": "string",
+              "required": false
+            },
+            "checkOutPhoto": {
+              "type": "string",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "rosterId": "int",
+            "checkInTime": "date | null",
+            "checkOutTime": "date | null",
+            "checkInLat": "number | null",
+            "checkInLng": "number | null",
+            "checkInPhoto": "string | null",
+            "checkOutPhoto": "string | null",
+            "createdAt": "date",
+            "updatedAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/attendance",
+          "responseSchema": "array of Attendance objects"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/attendance/:id",
+          "responseSchema": "Attendance object with nested roster"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/attendance/:id",
+          "requestSchema": {
+            "rosterId": {
+              "type": "int",
+              "required": false
+            },
+            "checkInTime": {
+              "type": "date",
+              "required": false
+            },
+            "checkOutTime": {
+              "type": "date",
+              "required": false
+            },
+            "checkInLat": {
+              "type": "number",
+              "required": false
+            },
+            "checkInLng": {
+              "type": "number",
+              "required": false
+            },
+            "checkInPhoto": {
+              "type": "string",
+              "required": false
+            },
+            "checkOutPhoto": {
+              "type": "string",
+              "required": false
+            }
+          },
+          "responseSchema": "Attendance object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/attendance/:id",
+          "responseSchema": "Attendance object"
+        }
+      }
+    },
+    "notifications": {
+      "routes": {
+        "create": {
+          "method": "POST",
+          "path": "/notifications",
+          "requestSchema": {
+            "userId": {
+              "type": "int",
+              "required": true
+            },
+            "title": {
+              "type": "string",
+              "required": true
+            },
+            "message": {
+              "type": "string",
+              "required": true
+            },
+            "isRead": {
+              "type": "boolean",
+              "required": false
+            },
+            "isSent": {
+              "type": "boolean",
+              "required": false
+            }
+          },
+          "responseSchema": {
+            "id": "int",
+            "userId": "int",
+            "title": "string",
+            "message": "string",
+            "isRead": "boolean",
+            "isSent": "boolean",
+            "createdAt": "date"
+          }
+        },
+        "findAll": {
+          "method": "GET",
+          "path": "/notifications",
+          "responseSchema": "array of Notification objects"
+        },
+        "findOne": {
+          "method": "GET",
+          "path": "/notifications/:id",
+          "responseSchema": "Notification object"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/notifications/:id",
+          "requestSchema": {
+            "userId": {
+              "type": "int",
+              "required": false
+            },
+            "title": {
+              "type": "string",
+              "required": false
+            },
+            "message": {
+              "type": "string",
+              "required": false
+            },
+            "isRead": {
+              "type": "boolean",
+              "required": false
+            },
+            "isSent": {
+              "type": "boolean",
+              "required": false
+            }
+          },
+          "responseSchema": "Notification object"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/notifications/:id",
+          "responseSchema": "Notification object"
+        }
+      }
+    }
+  },
+  "schemas": {
+    "CompanyUser": {
+      "description": "Tracks user membership in companies with full history. Never deleted, only marked inactive.",
+      "fields": {
+        "id": "int (primary key)",
+        "userId": "int (foreign key to User)",
+        "companyId": "int (foreign key to Company)",
+        "role": "enum: admin | manager | employee",
+        "jobTitle": "string (e.g., Guard, Cook, Cleaner)",
+        "isActive": "boolean (true = current member, false = left)",
+        "isRequested": "boolean (pending approval)",
+        "leftAt": "date | null (timestamp when user left company)",
+        "createdAt": "date (when user joined)",
+        "updatedAt": "date"
+      },
+      "uniqueConstraint": ["userId", "companyId"],
+      "businessRules": [
+        "History is maintained - records are never deleted",
+        "leftAt is set when user leaves (isActive becomes false)",
+        "Admins must transfer role before leaving",
+        "Users can rejoin companies (leftAt cleared, isActive true)"
+      ]
+    },
+    "AdminTransfer": {
+      "description": "Audit trail of all admin role transfers. Tracks who transferred to whom and why.",
+      "fields": {
+        "id": "int (primary key)",
+        "companyId": "int (company where transfer occurred)",
+        "fromCompanyUserId": "int (foreign key to CompanyUser - previous admin)",
+        "toCompanyUserId": "int (foreign key to CompanyUser - new admin)",
+        "reason": "string | null (reason for transfer)",
+        "createdAt": "date (when transfer occurred)"
+      },
+      "relations": {
+        "fromCompanyUser": "CompanyUser (previous admin)",
+        "toCompanyUser": "CompanyUser (new admin)"
+      },
+      "businessRules": [
+        "Created automatically on admin transfer",
+        "Immutable - never updated or deleted",
+        "Provides complete audit trail for compliance"
+      ]
+    }
+  },
+  "businessRules": {
+    "companyMembership": {
+      "userLeaving": {
+        "description": "Regular users (employee/manager) can leave anytime. History is maintained.",
+        "process": [
+          "User must be an active member (isActive: true)",
+          "Set isActive to false",
+          "Set leftAt to current timestamp",
+          "User data preserved for history"
+        ]
+      },
+      "adminLeaving": {
+        "description": "Admins must transfer role before leaving. Enforced at API level.",
+        "process": [
+          "Admin cannot use regular leave endpoint",
+          "Must use admin-leave endpoint",
+          "Transfer admin role to another active member",
+          "Record transfer in AdminTransfer table",
+          "Then mark admin as inactive with leftAt timestamp"
+        ],
+        "validation": [
+          "At least one other active member must exist",
+          "New admin must be an active company member",
+          "Cannot transfer to self"
+        ]
+      },
+      "adminTransfer": {
+        "description": "Transfer admin role between users with full audit trail.",
+        "process": [
+          "Verify current user is active admin",
+          "Verify new admin is active member",
+          "Demote current admin to manager role",
+          "Promote new admin to admin role",
+          "Create AdminTransfer record with reason"
+        ]
+      },
+      "rejoining": {
+        "description": "Users can rejoin companies they previously left.",
+        "process": [
+          "Must have previous membership record",
+          "Cannot rejoin if already active",
+          "Set isActive to true",
+          "Clear leftAt timestamp",
+          "Set isRequested to true (may need approval)",
+          "Previous role and jobTitle preserved"
+        ]
+      },
+      "history": {
+        "description": "Complete membership history maintained for all users.",
+        "features": [
+          "Never delete CompanyUser records",
+          "Track join date (createdAt)",
+          "Track leave date (leftAt)",
+          "Track all role changes via AdminTransfer",
+          "Support multiple memberships per user"
+        ]
+      }
+    }
+  }
+}
