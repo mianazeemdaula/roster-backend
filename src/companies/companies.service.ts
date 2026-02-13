@@ -5,7 +5,7 @@ import { UpdateCompanyDto } from './dto/update-company.dto';
 
 @Injectable()
 export class CompaniesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   create(createCompanyDto: CreateCompanyDto) {
     return this.prisma.company.create({
@@ -15,6 +15,24 @@ export class CompaniesService {
 
   findAll() {
     return this.prisma.company.findMany();
+  }
+
+  findByOwner(ownerId: number) {
+    return this.prisma.company.findMany({
+      where: { ownerId },
+      include: {
+        owner: true,
+      },
+    });
+  }
+
+  findByCode(companyCode: string) {
+    return this.prisma.company.findUnique({
+      where: { companyCode },
+      include: {
+        owner: true,
+      },
+    });
   }
 
   findOne(id: number) {

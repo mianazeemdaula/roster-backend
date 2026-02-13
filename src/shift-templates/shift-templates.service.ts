@@ -5,7 +5,7 @@ import { UpdateShiftTemplateDto } from './dto/update-shift-template.dto';
 
 @Injectable()
 export class ShiftTemplatesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   create(createShiftTemplateDto: CreateShiftTemplateDto) {
     return this.prisma.shiftTemplate.create({
@@ -15,6 +15,15 @@ export class ShiftTemplatesService {
 
   findAll() {
     return this.prisma.shiftTemplate.findMany();
+  }
+
+  findByCompany(companyId: number) {
+    return this.prisma.shiftTemplate.findMany({
+      where: { companyId },
+      include: {
+        company: true,
+      },
+    });
   }
 
   findOne(id: number) {

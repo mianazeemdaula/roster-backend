@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
@@ -14,7 +15,7 @@ import { UpdateCompanyDto } from './dto/update-company.dto';
 
 @Controller('companies')
 export class CompaniesController {
-  constructor(private readonly companiesService: CompaniesService) {}
+  constructor(private readonly companiesService: CompaniesService) { }
 
   @Post()
   create(@Body() createCompanyDto: CreateCompanyDto) {
@@ -22,8 +23,16 @@ export class CompaniesController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Query('ownerId') ownerId?: string) {
+    if (ownerId) {
+      return this.companiesService.findByOwner(Number(ownerId));
+    }
     return this.companiesService.findAll();
+  }
+
+  @Get('code/:companyCode')
+  findByCode(@Param('companyCode') companyCode: string) {
+    return this.companiesService.findByCode(companyCode);
   }
 
   @Get(':id')

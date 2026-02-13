@@ -12,6 +12,8 @@ import { RostersModule } from './rosters/rosters.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ShiftAdvertsModule } from './shift-adverts/shift-adverts.module';
+import { CompanyDocumentsModule } from './company-documents/company-documents.module';
+import { ShiftAttachmentsModule } from './shift-attachments/shift-attachments.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { ShiftAdvertsModule } from './shift-adverts/shift-adverts.module';
     AttendanceModule,
     NotificationsModule,
     ShiftAdvertsModule,
+    CompanyDocumentsModule,
+    ShiftAttachmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

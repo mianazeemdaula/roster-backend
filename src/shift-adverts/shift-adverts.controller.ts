@@ -4,6 +4,7 @@ import {
     Get,
     Param,
     ParseIntPipe,
+    Patch,
     Post,
     Query,
 } from '@nestjs/common';
@@ -73,5 +74,38 @@ export class ShiftAdvertsController {
         @Body() dto: AcceptShiftAdvertDto,
     ) {
         return this.shiftAdvertsService.accept(id, dto);
+    }
+
+    @Patch(':id/cancel')
+    cancel(@Param('id', ParseIntPipe) id: number) {
+        return this.shiftAdvertsService.cancelAdvert(id);
+    }
+
+    @Patch(':id/close')
+    close(@Param('id', ParseIntPipe) id: number) {
+        return this.shiftAdvertsService.closeAdvert(id);
+    }
+
+    @Get(':id/responses')
+    getResponses(@Param('id', ParseIntPipe) id: number) {
+        return this.shiftAdvertsService.getResponses(id);
+    }
+
+    @Get(':id/willing-responses')
+    getWillingResponses(@Param('id', ParseIntPipe) id: number) {
+        return this.shiftAdvertsService.getWillingResponses(id);
+    }
+
+    @Get('location/:locationId')
+    findByLocation(
+        @Param('locationId', ParseIntPipe) locationId: number,
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+    ) {
+        return this.shiftAdvertsService.findByLocation(
+            locationId,
+            this.parseDate(from),
+            this.parseDate(to),
+        );
     }
 }

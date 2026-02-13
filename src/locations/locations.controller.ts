@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { LocationsService } from './locations.service';
 import { CreateLocationDto } from './dto/create-location.dto';
@@ -14,7 +15,7 @@ import { UpdateLocationDto } from './dto/update-location.dto';
 
 @Controller('locations')
 export class LocationsController {
-  constructor(private readonly locationsService: LocationsService) {}
+  constructor(private readonly locationsService: LocationsService) { }
 
   @Post()
   create(@Body() createLocationDto: CreateLocationDto) {
@@ -22,7 +23,10 @@ export class LocationsController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Query('companyId') companyId?: string) {
+    if (companyId) {
+      return this.locationsService.findByCompany(Number(companyId));
+    }
     return this.locationsService.findAll();
   }
 

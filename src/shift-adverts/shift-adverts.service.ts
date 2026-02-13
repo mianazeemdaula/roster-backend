@@ -241,4 +241,105 @@ export class ShiftAdvertsService {
             return roster;
         });
     }
+
+    async cancelAdvert(shiftAdvertId: number) {
+        const advert = await this.prisma.shiftAdvert.findUnique({
+            where: { id: shiftAdvertId },
+        });
+
+        if (!advert) {
+            throw new NotFoundException('Shift advert not found.');
+        }
+
+        if (advert.status !== ShiftAdvertStatus.OPEN) {
+            throw new BadRequestException('Can only cancel open shift adverts.');
+        }
+
+        return this.prisma.shiftAdvert.update({
+            where: { id: shiftAdvertId },
+            data: { status: ShiftAdvertStatus.CANCELLED },
+        });
+    }
+
+    async closeAdvert(shiftAdvertId: number) {
+        const advert = await this.prisma.shiftAdvert.findUnique({
+            where: { id: shiftAdvertId },
+        });
+
+        if (!advert) {
+            throw new NotFoundException('Shift advert not found.');
+        }
+
+        if (advert.status !== ShiftAdvertStatus.OPEN) {
+            throw new BadRequestException('Can only close open shift adverts.');
+        }
+
+        return this.prisma.shiftAdvert.update({
+            where: { id: shiftAdvertId },
+            data: { status: ShiftAdvertStatus.CLOSED },
+        });
+    }
+
+    async getResponses(shiftAdvertId: number) {
+        const advert = await this.prisma.shiftAdvert.findUnique({
+            where: { id: shiftAdvertId },
+        });
+
+        if (!advert) {
+            throw new NotFoundException('Shift advert not found.');
+        }
+
+        return this.prisma.shiftAdvertResponse.findMany({
+            where: { shiftAdvertId },
+            include: {
+                companyUser: {
+                    include: {
+                        user: true,
+                    },
+                },
+            },
+            orderBy: { respondedAt: 'desc' },
+        });
+    }
+
+    async getWillingResponses(shiftAdvertId: number) {
+        return this.prisma.shiftAdvertResponse.findMany({
+            where: {
+                shiftAdvertId,
+                response: ShiftAdvertResponseStatus.WILLING,
+            },
+            include: {
+                companyUser: {
+                    include: {
+                        user: true,
+                    },
+                },
+            },
+            orderBy: { respondedAt: 'asc' },
+        });
+    }
+
+    async findByLocation(locationId: number, from?: Date, to?: Date) {
+        const dateFilter = this.buildDateRangeFilter(from, to);
+        return this.prisma.shiftAdvert.findMany({
+            where: {
+                locationId,
+                ...(dateFilter ?? {}),
+            },
+            include: {
+                location: true,
+                shiftTemplate: true,
+                responses: {
+                    include: {
+                        companyUser: {
+                            include: {
+                                user: true,
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: { dutyDate: 'asc' },
+        });
+    }
 }

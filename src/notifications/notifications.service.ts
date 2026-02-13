@@ -5,7 +5,7 @@ import { UpdateNotificationDto } from './dto/update-notification.dto';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   create(createNotificationDto: CreateNotificationDto) {
     return this.prisma.notification.create({
@@ -15,6 +15,29 @@ export class NotificationsService {
 
   findAll() {
     return this.prisma.notification.findMany();
+  }
+
+  findByUser(userId: number, isRead?: boolean) {
+    return this.prisma.notification.findMany({
+      where: {
+        userId,
+        ...(isRead !== undefined ? { isRead } : {}),
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async getUnreadCount(userId: number) {
+    const count = await this.prisma.notification.count({
+      where: {
+        userId,
+        isRead: false,
+      },
+    });
+
+    return { userId, unreadCount: count };
   }
 
   findOne(id: number) {
@@ -33,6 +56,36 @@ export class NotificationsService {
   remove(id: number) {
     return this.prisma.notification.delete({
       where: { id },
+    });
+  }
+
+  async markAsRead(id: number) {
+    return this.prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
+  }
+
+  async markAsSent(id: number) {
+    return this.prisma.notification.update({
+      where: { id },
+      data: { isSent: true },
+    });
+  }
+
+  async markAllAsRead(userId: number) {
+    return this.prisma.notification.updateMany({
+      where: {
+        userId,
+        isRead: false,
+      },
+      data: { isRead: true },
+    });
+  }
+
+  async bulkCreate(notifications: CreateNotificationDto[]) {
+    return this.prisma.notification.createMany({
+      data: notifications,
     });
   }
 }

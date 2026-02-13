@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ShiftTemplatesService } from './shift-templates.service';
 import { CreateShiftTemplateDto } from './dto/create-shift-template.dto';
@@ -14,7 +15,7 @@ import { UpdateShiftTemplateDto } from './dto/update-shift-template.dto';
 
 @Controller('shift-templates')
 export class ShiftTemplatesController {
-  constructor(private readonly shiftTemplatesService: ShiftTemplatesService) {}
+  constructor(private readonly shiftTemplatesService: ShiftTemplatesService) { }
 
   @Post()
   create(@Body() createShiftTemplateDto: CreateShiftTemplateDto) {
@@ -22,7 +23,10 @@ export class ShiftTemplatesController {
   }
 
   @Get()
-  findAll() {
+  findAll(@Query('companyId') companyId?: string) {
+    if (companyId) {
+      return this.shiftTemplatesService.findByCompany(Number(companyId));
+    }
     return this.shiftTemplatesService.findAll();
   }
 

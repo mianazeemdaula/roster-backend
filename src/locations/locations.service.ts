@@ -5,7 +5,7 @@ import { UpdateLocationDto } from './dto/update-location.dto';
 
 @Injectable()
 export class LocationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   create(createLocationDto: CreateLocationDto) {
     return this.prisma.location.create({
@@ -15,6 +15,15 @@ export class LocationsService {
 
   findAll() {
     return this.prisma.location.findMany();
+  }
+
+  findByCompany(companyId: number) {
+    return this.prisma.location.findMany({
+      where: { companyId },
+      include: {
+        company: true,
+      },
+    });
   }
 
   findOne(id: number) {

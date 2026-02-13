@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateRosterDto } from './dto/create-roster.dto';
 import { UpdateRosterDto } from './dto/update-roster.dto';
+import { RosterStatus } from '@prisma/client';
 
 @Injectable()
 export class RostersService {
@@ -82,6 +83,81 @@ export class RostersService {
     });
   }
 
+  findByCompany(
+    companyId: number,
+    filters?: {
+      status?: RosterStatus;
+      locationId?: number;
+      companyUserId?: number;
+      from?: Date;
+      to?: Date;
+    },
+  ) {
+    const dateFilter = this.buildDateRangeFilter(filters?.from, filters?.to);
+    return this.prisma.roster.findMany({
+      where: {
+        companyId,
+        ...(filters?.status ? { status: filters.status } : {}),
+        ...(filters?.locationId ? { locationId: filters.locationId } : {}),
+        ...(filters?.companyUserId ? { companyUserId: filters.companyUserId } : {}),
+        ...(dateFilter ?? {}),
+      },
+      include: {
+        employee: {
+          include: {
+            user: true,
+          },
+        },
+        location: true,
+        shiftTemplate: true,
+        attendance: true,
+      },
+    });
+  }
+
+  findByLocation(locationId: number, from?: Date, to?: Date) {
+    const dateFilter = this.buildDateRangeFilter(from, to);
+    return this.prisma.roster.findMany({
+      where: {
+        locationId,
+        ...(dateFilter ?? {}),
+      },
+      include: {
+        employee: {
+          include: {
+            user: true,
+          },
+        },
+        location: true,
+        shiftTemplate: true,
+        attendance: true,
+      },
+    });
+  }
+
+  findByUser(companyUserId: number, from?: Date, to?: Date) {
+    const dateFilter = this.buildDateRangeFilter(from, to);
+    return this.prisma.roster.findMany({
+      where: {
+        companyUserId,
+        ...(dateFilter ?? {}),
+      },
+      include: {
+        employee: {
+          include: {
+            user: true,
+          },
+        },
+        location: true,
+        shiftTemplate: true,
+        attendance: true,
+      },
+      orderBy: {
+        dutyDate: 'desc',
+      },
+    });
+  }
+
   findOne(id: number) {
     return this.prisma.roster.findUnique({
       where: { id },
@@ -121,6 +197,53 @@ export class RostersService {
       data: {
         ...updateRosterDto,
         ...(scheduledMinutes !== undefined ? { scheduledMinutes } : {}),
+
+        async updateStatus(id: number, status: RosterStatus) {
+          return this.prisma.roster.update({
+            where: { id },
+            data: { status },
+          });
+        }
+
+  async completeRoster(id: number) {
+          return this.updateStatus(id, RosterStatus.COMPLETED);
+        }
+
+  async cancelRoster(id: number) {
+          return this.updateStatus(id, RosterStatus.CANCELLED);
+        }
+
+  async markAsMissed(id: number) {
+          return this.updateStatus(id, RosterStatus.MISSED);
+        }
+
+  async bulkCreate(rosters: CreateRosterDto[]) {
+          const rostersWithScheduledMinutes = await Promise.all(
+            rosters.map(async (roster) => {
+              const shiftTemplate = await this.prisma.shiftTemplate.findUnique({
+                where: { id: roster.shiftTemplateId },
+                select: { startTime: true, endTime: true, breakMinutes: true },
+              });
+
+              const scheduledMinutes = shiftTemplate
+                ? this.calculateScheduledMinutes(
+                  shiftTemplate.startTime,
+                  shiftTemplate.endTime,
+                  shiftTemplate.breakMinutes,
+                )
+                : undefined;
+
+              return {
+                ...roster,
+                ...(scheduledMinutes !== undefined ? { scheduledMinutes } : {}),
+              };
+            }),
+          );
+
+          return this.prisma.roster.createMany({
+            data: rostersWithScheduledMinutes,
+          });
+        }
       },
     });
   }
